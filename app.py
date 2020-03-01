@@ -7,11 +7,11 @@ from xvfbwrapper import Xvfb
 
 
 def launch_torcs():
-    vdisplay = Xvfb()
-    vdisplay.start()
     while True:
         
         try:
+            vdisplay = Xvfb()
+            vdisplay.start()
             z = subprocess.Popen(
                 ["/code/torcs-1.3.7/BUILD/bin/torcs"],
                 stdout=subprocess.PIPE,
