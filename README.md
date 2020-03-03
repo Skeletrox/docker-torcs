@@ -7,6 +7,7 @@ TORCS running in headless mode on Docker.
 * Install Docker
 * Clone this repository
 * Run `automator.py`
+* The orchestrator is present in the `Orchestrator` folder.
 
 ## Injecting Logic
 
