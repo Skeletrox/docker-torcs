@@ -9,7 +9,7 @@ def launch_torcs():
     while True:
         
         try:
-            vdisplay = Xvfb()
+            vdisplay = Xvfb(width=640, height=480)
             vdisplay.start()
             z = subprocess.Popen(
                 ["/code/torcs-1.3.7/BUILD/bin/torcs"],
@@ -36,14 +36,20 @@ def hello():
     return 'Hello World! Visit <a href="https://skeletrox.github.io">skeletrox.github.io</a>!\n'
 
 
-@app.route('/act', methods=["POST"])
+@app.route('/reset')
+def reset():
+    # Reset the environment
+    pass
+
+
+@app.route('/step', methods=["POST"])
 def act():
     data = request.json
-    action = int(data["action"])
+    actions = data["actions"]
     # client = Client()
     # state, reward, done, info = client.perform(action)
     return jsonify({
-        "action": action,
+        "actions": actions,
         "state": "insert serialized state here",
         "done": "insert if done here",
         "info": "insert additional info here"
