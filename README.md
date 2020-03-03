@@ -11,7 +11,7 @@ TORCS running in headless mode on Docker.
 
 ## Injecting Logic
 
-* Update `act()` in `app.py` to use your logic and return data the way your learning agent uses. Interface `xvfbwrapper` for any display-related output and processing.
+* Update `step()` and `reset()` in `app.py` to use your logic and return data the way your learning agent uses. Interface `xvfbwrapper` for any display-related output and processing.
 
 ## Additional Notes
 
