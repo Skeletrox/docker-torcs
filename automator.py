@@ -79,7 +79,7 @@ writable_dict = {
 }
 
 # Orchestrator needs a configuration file
-with open("./Orchestrator/config.json", "w+") as w:
+with open("{}/Orchestrator/config.json".format(work_directory), "w+") as w:
     w.write(json.dumps(writable_dict))
 
 
