@@ -3,6 +3,7 @@ import subprocess
 from threading import Thread
 from flask import Flask, request, jsonify
 from xvfbwrapper import Xvfb
+import ray
 
 
 def launch_torcs():
@@ -54,3 +55,9 @@ def act():
         "done": "insert if done here",
         "info": "insert additional info here"
     })
+
+
+@ray.remote
+def actUsingRay(actor):
+    stuff = actor.step.remote()
+    return actor
