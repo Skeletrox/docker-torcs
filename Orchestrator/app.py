@@ -22,12 +22,10 @@ DOCKER_URL = "http://127.0.0.1"
 actors = None
 
 proc = subprocess.call("ray start --head --redis-port=6379",
-                            stdout = subprocess.PIPE,
-                            stderr = subprocess.PIPE,
                             shell=True)
 
-if proc.returncode:
-    print("ERR:", proc.stderr)
+if proc:
+    print("Cannot bring up ray")
     exit(1)
 
 @app.route('/')

@@ -67,12 +67,16 @@ docker0_ip = proc.decode()
 print("Docker IP address of host is", docker0_ip)
 
 # Optional build of the orchestrator and service images. Not necessary if images already exist.
-if (input("Do you wish to build the docker images? [y/N]: ").upper() == 'Y'):
+build_service = input("Do you wish to build the service docker image? [y/N]: ").upper() == 'Y'
+build_orchestrator = input("Do you wish to build the orchestrator docker image? [y/N]: ").upper() == 'Y'
+
+if build_service:
     os.chdir("{}/ROOT_DOCKER/".format(work_directory))
     print("Building target image...")
     for line in execute(["docker", "build", "-t", "torcs_docker", "."]):
         print(line,end="")
 
+if build_orchestrator:
     os.chdir("{}/Orchestrator/".format(work_directory))
     print("\n-------------------\nBuilding orchestrator image...")
     for line in execute(["docker", "build", "-t", "torcs_orchestrator", "."]):
@@ -100,27 +104,29 @@ except FileExistsError:
 
 
 with open("{}/orchestrator/Dockerfile".format(folder_name), 'w+') as df:
-            df.write(orchestrator_dockerfile)
+            df.write(orchestrator_dockerfile.format(dynamic_docker_host=docker0_ip))
+
+
+service_folder = "torcs_instance" 
+
+try:
+    os.makedirs("{}/{}".format(folder_name, service_folder))
+except FileExistsError:
+    pass
+
+with open("{}/{}/Dockerfile".format(folder_name, service_folder), 'w+') as df:
+    df.write(dockerfile_template.format(dynamic_docker_host=docker0_ip))
 
 with open("{}/docker-compose.yml".format(folder_name), 'w+') as d_c:
     d_c.write("version: '3'")
     d_c.write(orchestrator_template)
     for i in range(num_dockers):
-        service_name = "torcs_instance_{}".format(i+1)
-        service_folder = service_name 
+        service_name = "{}_{}".format(service_folder, i+1)
         d_c.write(template_string.format(service_name=service_name, service_folder=service_folder, parent_port=start_port + i))
         port_list.append(start_port + i)
 
-        try:
-            os.makedirs("{}/{}".format(folder_name, service_name))
-        except FileExistsError:
-            pass
 
-        with open("{}/{}/Dockerfile".format(folder_name, service_name), 'w+') as df:
-            df.write(dockerfile_template.format(dynamic_docker_host=docker0_ip))
-
-
-    print("[*] Docker folder for torcs_{} made".format(i+1))
+    print("[*] docker data for instance {} written".format(i+1))
 
 # The writable dictionary is currently the list of ports
 writable_dict = {
