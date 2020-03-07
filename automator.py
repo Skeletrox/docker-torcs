@@ -8,18 +8,36 @@ from sys import exit
 # The directory where all the docker files will be placed
 DOCKER_BUILD_DIR = "DOCKERS"
 
-# Files that will be copied from the current folder to the target folders.
-copyables = [
-    "Dockerfile",
-]
-
 # The docker-compose template string that will be dynamically populated.
 template_string = '''
-services:
-    instance:
-        build: .
+    {service_name}:
+        build: {service_folder}
         ports:
-            - "{}:5000"
+            - "{parent_port}:5000"
+'''
+
+orchestrator_template = '''
+services:
+    orchestrator:
+        build: ./orchestrator
+        ports:
+            - "5000:5000"
+            - "6379:6379"
+'''
+
+# The dockerfile template string that will be used to set the host docker's IP
+dockerfile_template = '''
+FROM torcs_docker:latest
+WORKDIR /code
+ENV DOCKER_HOST {dynamic_docker_host}
+CMD ["flask", "run"]
+'''
+
+orchestrator_dockerfile = '''
+FROM torcs_orchestrator:latest
+WORKDIR /code
+ENV DOCKER_HOST {dynamic_docker_host}
+CMD ["flask", "run"]
 '''
 
 # A helper function to allow for immediate STDOUT from long-running processing
@@ -41,12 +59,26 @@ start_port = int(input("[+] Enter anchor port: "))
 # work_directory can be either the current working directory or a remote directory where the files exist
 work_directory = os.getcwd()
 
-# Optional build of the image. Not necessary if images already exist.
-if (input("Do you wish to build the docker image? [y/N]: ").upper() == 'Y'):
+# get the docker0 ip address (linux only)
+proc = subprocess.check_output("ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+'",
+                            shell=True)
+
+docker0_ip = proc.decode()
+print("Docker IP address of host is", docker0_ip)
+
+# Optional build of the orchestrator and service images. Not necessary if images already exist.
+if (input("Do you wish to build the docker images? [y/N]: ").upper() == 'Y'):
     os.chdir("{}/ROOT_DOCKER/".format(work_directory))
-    print("Building image...")
+    print("Building target image...")
     for line in execute(["docker", "build", "-t", "torcs_docker", "."]):
         print(line,end="")
+
+    os.chdir("{}/Orchestrator/".format(work_directory))
+    print("\n-------------------\nBuilding orchestrator image...")
+    for line in execute(["docker", "build", "-t", "torcs_orchestrator", "."]):
+        print(line,end="")
+
+    
 
 try:
     os.makedirs("{}/{}/".format(work_directory, DOCKER_BUILD_DIR))
@@ -55,21 +87,38 @@ except FileExistsError:
 
 port_list = []
 
-for i in range(num_dockers):
-    folder_name = "{}/{}/torcs_{}".format(work_directory, DOCKER_BUILD_DIR, i+1)
+folder_name = "{}/{}".format(work_directory, DOCKER_BUILD_DIR)
+try:
+    os.makedirs(folder_name)
+except FileExistsError:
+    pass
 
-    try:
-        os.makedirs(folder_name)
-    except FileExistsError:
-        pass
+try:
+    os.makedirs("{}/{}".format(folder_name, "orchestrator"))
+except FileExistsError:
+    pass
 
-    with open("{}/docker-compose.yml".format(folder_name), 'w+') as d_c:
-        d_c.write("version: '3'")
-        d_c.write(template_string.format(start_port + i))
+
+with open("{}/orchestrator/Dockerfile".format(folder_name), 'w+') as df:
+            df.write(orchestrator_dockerfile)
+
+with open("{}/docker-compose.yml".format(folder_name), 'w+') as d_c:
+    d_c.write("version: '3'")
+    d_c.write(orchestrator_template)
+    for i in range(num_dockers):
+        service_name = "torcs_instance_{}".format(i+1)
+        service_folder = service_name 
+        d_c.write(template_string.format(service_name=service_name, service_folder=service_folder, parent_port=start_port + i))
         port_list.append(start_port + i)
 
-    for c in copyables:
-        shutil.copyfile("{}/{}".format(work_directory, c), "{}/{}".format(folder_name, c))
+        try:
+            os.makedirs("{}/{}".format(folder_name, service_name))
+        except FileExistsError:
+            pass
+
+        with open("{}/{}/Dockerfile".format(folder_name, service_name), 'w+') as df:
+            df.write(dockerfile_template.format(dynamic_docker_host=docker0_ip))
+
 
     print("[*] Docker folder for torcs_{} made".format(i+1))
 
@@ -79,14 +128,20 @@ writable_dict = {
 }
 
 # Orchestrator needs a configuration file
-with open("{}/Orchestrator/config.json".format(work_directory), "w+") as w:
+with open("{}/{}/orchestrator/config.json".format(work_directory, DOCKER_BUILD_DIR), "w+") as w:
     w.write(json.dumps(writable_dict))
 
 
 print("[*] Bringing dockers up...")
 
-for i in range(num_dockers):
-    os.chdir("{}/{}/torcs_{}".format(work_directory, DOCKER_BUILD_DIR, i+1))
-    for line in execute(["docker-compose", "up", "-d"]):
-        print(line.strip())
-    print("Docker torcs_{} up. Events logged.".format(i+1))
+os.chdir("{}/{}".format(work_directory, DOCKER_BUILD_DIR))
+for line in execute(["docker-compose", "up", "-d"]):
+    print(line.strip())
+print("[*] Orchestrator and services up. Events logged.".format(i+1))
+
+
+#for i in range(num_dockers):
+#    os.chdir("{}/{}/torcs_{}".format(work_directory, DOCKER_BUILD_DIR, i+1))
+#    for line in execute(["docker-compose", "up", "-d"]):
+#        print(line.strip())
+#    print("Docker torcs_{} up. Events logged.".format(i+1))

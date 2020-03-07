@@ -1,4 +1,5 @@
 import ray
+import time
 
 @ray.remote
 class Actor(object):
@@ -18,3 +19,9 @@ class Actor(object):
 
     def returnYields(self):
         pass
+
+
+@ray.remote
+def something():
+    time.sleep(0.01)
+    return ray.services.get_node_ip_address()

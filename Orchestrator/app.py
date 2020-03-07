@@ -3,7 +3,9 @@ import subprocess
 from flask import Flask, request, jsonify
 import json
 import requests
-from ray_actor import Actor
+from ray_actor import Actor, something
+import ray
+from sys import exit
 
 
 app = Flask(__name__)
@@ -12,10 +14,21 @@ metadata = None
 with open('./config.json') as config:
     metadata = json.loads(config.read())
 
-DOCKER_URL = "http://192.168.99.100"
+ray.init()
+
+DOCKER_URL = "http://127.0.0.1"
 
 
 actors = None
+
+proc = subprocess.call("ray start --head --redis-port=6379",
+                            stdout = subprocess.PIPE,
+                            stderr = subprocess.PIPE,
+                            shell=True)
+
+if proc.returncode:
+    print("ERR:", proc.stderr)
+    exit(1)
 
 @app.route('/')
 def hello():
@@ -46,7 +59,7 @@ def demux():
     })
 
 
-@app.route('./raysteps', methods=["POST"])
+@app.route('/raysteps', methods=["POST"])
 def demux_ray():
     data = request.json
     returnable = []
@@ -57,3 +70,15 @@ def demux_ray():
     return jsonify({
         "responses": returnable
     })
+
+
+@app.route('/test')
+def test():
+    result = list(set(ray.get([something.remote() for _ in range(1000)])))
+    return jsonify({
+        "result": result
+    })
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
