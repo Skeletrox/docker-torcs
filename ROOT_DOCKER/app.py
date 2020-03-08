@@ -4,30 +4,42 @@ from threading import Thread
 from flask import Flask, request, jsonify
 from xvfbwrapper import Xvfb
 import ray
+from sys import exit
+
+
+def launch_ffmpeg():
+    y = subprocess.check_output(
+        ["ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 /tmp/output.mp4"],
+        shell=True
+    )
+    print("FFMPEG output:", y.decode())
 
 
 def launch_torcs():
     while True:
-        
-        try:
-            vdisplay = Xvfb(width=640, height=480)
-            vdisplay.start()
-            z = subprocess.Popen(
-                ["/code/torcs-1.3.7/BUILD/bin/torcs"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
-            print("STDOUT:", z.stdout)
-            print("STDERR:", z.stderr)
-            time.sleep(600)
-        finally:
-            vdisplay.stop()
+        z = subprocess.check_output(
+            ["/code/torcs-1.3.7/BUILD/bin/torcs"],
+            shell=True
+        )
+        print("TORCS output:", z.decode())
+        time.sleep(600)
+
 
 try:
+    working = True
+    vdisplay = Xvfb(width=640, height=480)
+    vdisplay.start()
     thread = Thread(target=launch_torcs)
     thread.start()
+    thread2 = Thread(target=launch_ffmpeg)
+    thread2.start()
 except:
-    print("FAIL")
+    working = False
+    print("Error launching torcs/ffmpeg. Please check output.")
+finally:
+    vdisplay.stop()
+    if not working:
+        exit(1)
 
 app = Flask(__name__)
 
