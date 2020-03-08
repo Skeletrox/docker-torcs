@@ -1,6 +1,6 @@
 # Docker-TORCS
 
-TORCS running in headless mode on Docker.
+TORCS running in headless mode on Docker with a `flask` and `ray` interface.
 
 ## Setup
 
@@ -15,4 +15,4 @@ TORCS running in headless mode on Docker.
 
 ## Additional Notes
 
-The `Dockerfile` in the root directory of this project is the Dockerfile that will be used for the generated dockers. Make any changes you feel fit on this file.
+`Dockerfile` and `Dockerfile_orchestrator` are example configs of the dockerfiles that will be used.
