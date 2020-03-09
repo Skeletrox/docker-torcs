@@ -16,28 +16,12 @@ def execute(cmd, file_descriptor=None):
     else:
         popen = subprocess.Popen(cmd, universal_newlines=True, shell=True)
 
+    return popen
+
 
 def launch_ffmpeg():
-    # get the appropriate display number
     print("Attempting to open FFMPEG:")
-    #display_number = None
-    #while display_number is None:
-    #    z = None
-    #    print("Attempting to get display...")
-    #    with open('/tmp/displayx', 'rw') as rw:
-    #        subprocess.run(["ls", "-a", "/tmp"], stdout=rw)
-    #        z = rw.read().decode()
-    #    # Xvfb holds a lock in /tmp
-    #    finds = findall(r"X(\d+)-lock", z) 
-    ##    if len(finds) != 0:
-    #       display_number = finds[0]
-    #        environ["DISPLAY"] = display_number
-    #        print("Display Number is:", display_number)
-    #    else:
-    #        # try again after 5 seconds
-    #        print("FFMPEG: Cannot find display... trying after 5s")
-    #        time.sleep(5)
-    try:    
+    try:
         execute(["ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 /tmp/output.mp4"], None)
     except Exception as e:
         with open('/var/log/torcs_ffmpeg_err.log', 'a+') as f2:
@@ -46,18 +30,16 @@ def launch_ffmpeg():
 
 def launch_torcs():
     print("Getting display up..")
-    environ["DISPLAY"] = ":0"
     vdisplay = Xvfb(width=640, height=480, display="0")
     vdisplay.start()
-    while True:
-        try:
-            f = open('/var/log/torcs_py.log', 'w')
-            execute("/code/torcs-1.3.7/BUILD/bin/torcs", f)
-        except Exception as e:
-            print(e)            
-        finally:
-            f.close()
-        time.sleep(600)
+    try:
+        f = open('/var/log/torcs_py.log', 'w')
+        z = execute("/code/torcs-1.3.7/BUILD/bin/torcs", f)
+    except Exception as e:
+        print(e)            
+    finally:
+        z.wait()
+        f.close()
 
 
 try:
