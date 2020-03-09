@@ -1,4 +1,4 @@
 flask
 gym
-xvfbwrapper
 ray
+git+git://github.com/Skeletrox/xvfbwrapper.git

@@ -5,41 +5,73 @@ from flask import Flask, request, jsonify
 from xvfbwrapper import Xvfb
 import ray
 from sys import exit
+from re import findall
+from os import environ
+import logging
+
+
+def execute(cmd, file_descriptor):
+    popen = subprocess.Popen(cmd, stdout=file_descriptor, stderr=file_descriptor, universal_newlines=True)
 
 
 def launch_ffmpeg():
-    y = subprocess.check_output(
-        ["ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 /tmp/output.mp4"],
-        shell=True
-    )
-    print("FFMPEG output:", y.decode())
+    # get the appropriate display number
+    print("Attempting to open FFMPEG:")
+    #display_number = None
+    #while display_number is None:
+    #    z = None
+    #    print("Attempting to get display...")
+    #    with open('/tmp/displayx', 'rw') as rw:
+    #        subprocess.run(["ls", "-a", "/tmp"], stdout=rw)
+    #        z = rw.read().decode()
+    #    # Xvfb holds a lock in /tmp
+    #    finds = findall(r"X(\d+)-lock", z) 
+    ##    if len(finds) != 0:
+    #       display_number = finds[0]
+    #        environ["DISPLAY"] = display_number
+    #        print("Display Number is:", display_number)
+    #    else:
+    #        # try again after 5 seconds
+    #        print("FFMPEG: Cannot find display... trying after 5s")
+    #        time.sleep(5)
+    f2 = open('/var/log/torcs_ffmpeg.log', 'w+')
+    try:
+        execute("ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 /tmp/output.mp4", f2)
+    except Exception as e:
+        with open('/var/log/torcs_ffmpeg_err.log', 'a+') as f3:
+            f3.write(e)
+    f2.close()
 
 
 def launch_torcs():
+    print("Getting display up..")
+    environ["DISPLAY"] = ":0"
+    vdisplay = Xvfb(width=640, height=480, display="0")
+    vdisplay.start()
     while True:
-        z = subprocess.check_output(
-            ["/code/torcs-1.3.7/BUILD/bin/torcs"],
-            shell=True
-        )
-        print("TORCS output:", z.decode())
+        try:
+            f = open('/var/log/torcs_py.log', 'w+')
+            execute("/code/torcs-1.3.7/BUILD/bin/torcs", f)
+        except Exception as e:
+            print(e)            
+        finally:
+            f.close()
         time.sleep(600)
 
 
 try:
-    working = True
-    vdisplay = Xvfb(width=640, height=480)
-    vdisplay.start()
+    print("Getting TORCS up..")
     thread = Thread(target=launch_torcs)
     thread.start()
+    print("TORCS launched. Getting FFMPEG up..")
+    time.sleep(1)
     thread2 = Thread(target=launch_ffmpeg)
+    print("FFMPEG launched.")
     thread2.start()
-except:
+except Exception as e:
+    print(e)
     working = False
     print("Error launching torcs/ffmpeg. Please check output.")
-finally:
-    vdisplay.stop()
-    if not working:
-        exit(1)
 
 app = Flask(__name__)
 
