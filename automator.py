@@ -3,7 +3,7 @@ import shutil
 import subprocess
 import logging
 import json
-from sys import exit
+from sys import exit, platform
 
 # The directory where all the docker files will be placed
 DOCKER_BUILD_DIR = "DOCKERS"
@@ -59,11 +59,14 @@ start_port = int(input("[+] Enter anchor port: "))
 # work_directory can be either the current working directory or a remote directory where the files exist
 work_directory = os.getcwd()
 
-# get the docker0 ip address (linux only)
-proc = subprocess.check_output("ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+'",
+# get the docker0 ip address (dynamic on linux only, static on windows)
+if platform == 'win32':
+    docker0_ip = '192.168.99.100'
+else:
+    proc = subprocess.check_output("ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+'",
                             shell=True)
+    docker0_ip = proc.decode()
 
-docker0_ip = proc.decode()
 print("Docker IP address of host is", docker0_ip)
 
 # Optional build of the orchestrator and service images. Not necessary if images already exist.
