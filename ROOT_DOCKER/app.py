@@ -22,7 +22,7 @@ def execute(cmd, file_descriptor=None):
 def launch_ffmpeg():
     print("Attempting to open FFMPEG:")
     try:
-        execute(["ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 /tmp/output.mp4"], None)
+        execute(["ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 -vf scale=64:64 /tmp/output.mp4"], None)
     except Exception as e:
         with open('/var/log/torcs_ffmpeg_err.log', 'a+') as f2:
             f2.write(str(e))
