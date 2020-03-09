@@ -10,8 +10,11 @@ from os import environ
 import logging
 
 
-def execute(cmd, file_descriptor):
-    popen = subprocess.Popen(cmd, stdout=file_descriptor, stderr=file_descriptor, universal_newlines=True)
+def execute(cmd, file_descriptor=None):
+    if file_descriptor is not None:
+        popen = subprocess.Popen(cmd, stdout=file_descriptor, stderr=file_descriptor, universal_newlines=True, shell=True)
+    else:
+        popen = subprocess.Popen(cmd, universal_newlines=True, shell=True)
 
 
 def launch_ffmpeg():
@@ -34,13 +37,11 @@ def launch_ffmpeg():
     #        # try again after 5 seconds
     #        print("FFMPEG: Cannot find display... trying after 5s")
     #        time.sleep(5)
-    f2 = open('/var/log/torcs_ffmpeg.log', 'w+')
-    try:
-        execute("ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 /tmp/output.mp4", f2)
+    try:    
+        execute(["ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 /tmp/output.mp4"], None)
     except Exception as e:
-        with open('/var/log/torcs_ffmpeg_err.log', 'a+') as f3:
-            f3.write(e)
-    f2.close()
+        with open('/var/log/torcs_ffmpeg_err.log', 'a+') as f2:
+            f2.write(str(e))
 
 
 def launch_torcs():
@@ -50,7 +51,7 @@ def launch_torcs():
     vdisplay.start()
     while True:
         try:
-            f = open('/var/log/torcs_py.log', 'w+')
+            f = open('/var/log/torcs_py.log', 'w')
             execute("/code/torcs-1.3.7/BUILD/bin/torcs", f)
         except Exception as e:
             print(e)            
