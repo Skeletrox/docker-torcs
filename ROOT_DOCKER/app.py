@@ -41,6 +41,16 @@ def launch_torcs():
         z.wait()
         f.close()
 
+proc = subprocess.call("ray start --address={}:6379".format(environ["DOCKER_HOST"]),
+                            shell=True)
+
+while True:
+    try:
+        ray.init(address="{}:6379".format(environ["DOCKER_HOST"]))
+        break
+    except Exception as e:
+        print("Retrying in 5s...")
+        time.sleep(5)
 
 try:
     print("Getting TORCS up..")
@@ -88,3 +98,4 @@ def act():
 def actUsingRay(actor):
     stuff = actor.step.remote()
     return actor
+

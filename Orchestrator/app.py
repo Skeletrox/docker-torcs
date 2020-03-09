@@ -14,8 +14,6 @@ metadata = None
 with open('./config.json') as config:
     metadata = json.loads(config.read())
 
-ray.init()
-
 DOCKER_URL = "http://127.0.0.1"
 
 
@@ -23,6 +21,9 @@ actors = None
 
 proc = subprocess.call("ray start --head --redis-port=6379",
                             shell=True)
+
+
+ray.init(address="127.0.0.1:6379")
 
 if proc:
     print("Cannot bring up ray")
