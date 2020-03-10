@@ -1,15 +1,15 @@
 import time
-import subprocess
-from threading import Thread
+# import subprocess
+# from threading import Thread
 from flask import Flask, request, jsonify
-from xvfbwrapper import Xvfb
-import ray
+# from xvfbwrapper import Xvfb
+# # import ray
 from sys import exit
-from re import findall
-from os import environ
+# from re import findall
+# from os import environ
 import logging
 
-
+'''
 def execute(cmd, file_descriptor=None):
     if file_descriptor is not None:
         popen = subprocess.Popen(cmd, stdout=file_descriptor, stderr=file_descriptor, universal_newlines=True, shell=True)
@@ -65,8 +65,52 @@ except Exception as e:
     print(e)
     working = False
     print("Error launching torcs/ffmpeg. Please check output.")
+'''
 
 app = Flask(__name__)
+
+# define the simulator function.
+def simulate(state, action):
+
+    x = state[0]
+    y = state[1]
+
+    badReward = -1000
+    goodReward = 1000
+
+    # Got gored by a monster
+    if x == 2 and y == 2:
+        return state, badReward, True
+  
+    # Got the treasure
+    if x == 2 and y == 0:
+        return state, goodReward, True
+
+    if action == 0: # Going Left
+        x -= 1
+    elif action == 1: # Going Right
+        x += 1
+    elif action == 2:
+        y += 1 # Going down
+    else:
+        y -= 1 # Going up
+
+    # Define boundary crossing penalties
+    reward = 0
+    if x < 0:
+        x = 0
+        reward = badReward
+    elif x > 2:
+        x = 2
+        reward = badReward
+    elif y < 0:
+        y = 0
+        reward = badReward
+    elif y > 2:
+        y = 2
+        reward = badReward
+  
+    return np.array([x, y]), reward, False
 
 
 @app.route('/')
@@ -83,19 +127,20 @@ def reset():
 @app.route('/step', methods=["POST"])
 def act():
     data = request.json
-    actions = data["actions"]
+    state = data["state"]
+    action = data["action"]
     # client = Client()
     # state, reward, done, info = client.perform(action)
+    nextState, reward, done = simulate(state, action)
     return jsonify({
-        "actions": actions,
-        "state": "insert serialized state here",
-        "done": "insert if done here",
-        "info": "insert additional info here"
+        "nextState": nextState,
+        "reward": reward,
+        "done": done,
+        "action": action
     })
 
 
-@ray.remote
-def actUsingRay(actor):
-    stuff = actor.step.remote()
-    return actor
-
+#@ray.remote
+#def actUsingRay(actor):
+#    stuff = actor.step.remote()
+#    return actor

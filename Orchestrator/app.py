@@ -3,8 +3,8 @@ import subprocess
 from flask import Flask, request, jsonify
 import json
 import requests
-from ray_actor import Actor, something
-import ray
+# from ray_actor import Actor, something
+# import ray
 from sys import exit
 
 
@@ -19,15 +19,15 @@ DOCKER_URL = "http://127.0.0.1"
 
 actors = None
 
-proc = subprocess.call("ray start --head --redis-port=6379",
-                            shell=True)
+# proc = subprocess.call("ray start --head --redis-port=6379",
+#                            shell=True)
 
 
-ray.init(address="127.0.0.1:6379")
+# ray.init(address="127.0.0.1:6379")
 
-if proc:
-    print("Cannot bring up ray")
-    exit(1)
+# if proc:
+#    print("Cannot bring up ray")
+#    exit(1)
 
 @app.route('/')
 def hello():
@@ -44,39 +44,40 @@ def demux():
 
     data = request.json
     ports = metadata["containers"]
-    returnable = []
+    returnable = {}
 
     for i in range(len(ports)):
         r = requests.post(url="{}:{}/step".format(DOCKER_URL, ports[i]), json={
-            "actions": data["actions"][i]
+            "state": data["states"][i],
+            "action": data["actions"][i]
         })
         print(r.text)
-        returnable.append(r.json())
+        returnable[i] =  r.json()
 
     return jsonify({
         "responses": returnable
     })
 
 
-@app.route('/raysteps', methods=["POST"])
-def demux_ray():
-    data = request.json
-    returnable = []
+#@app.route('/raysteps', methods=["POST"])
+#def demux_ray():
+#    data = request.json
+#    returnable = []
+#
+#    for i in range(len(ports)):
+#        actors[i].setNextSteps(data["actions"][i])
+#
+#    return jsonify({
+#        "responses": returnable
+#    })
 
-    for i in range(len(ports)):
-        actors[i].setNextSteps(data["actions"][i])
 
-    return jsonify({
-        "responses": returnable
-    })
-
-
-@app.route('/test')
-def test():
-    result = list(set(ray.get([something.remote() for _ in range(1000)])))
-    return jsonify({
-        "result": result
-    })
+#@app.route('/test')
+#def test():
+#    result = list(set(ray.get([something.remote() for _ in range(1000)])))
+#    return jsonify({
+#        "result": result
+#    })
 
 
 if __name__ == "__main__":
