@@ -3,6 +3,7 @@ import subprocess
 from flask import Flask, request, jsonify
 import json
 import requests
+from os import environ
 # from ray_actor import Actor, something
 # import ray
 from sys import exit
@@ -14,7 +15,7 @@ metadata = None
 with open('./config.json') as config:
     metadata = json.loads(config.read())
 
-DOCKER_URL = "http://127.0.0.1"
+DOCKER_URL = "http://{}".format(environ["DOCKER_HOST"])
 
 
 actors = None
@@ -51,7 +52,6 @@ def demux():
             "state": data["states"][i],
             "action": data["actions"][i]
         })
-        print(r.text)
         returnable[i] =  r.json()
 
     return jsonify({

@@ -37,6 +37,7 @@ orchestrator_dockerfile = '''
 FROM torcs_orchestrator:latest
 WORKDIR /code
 ENV DOCKER_HOST {dynamic_docker_host}
+COPY . .
 CMD ["flask", "run"]
 '''
 

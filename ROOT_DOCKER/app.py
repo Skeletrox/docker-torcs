@@ -110,7 +110,7 @@ def simulate(state, action):
         y = 2
         reward = badReward
   
-    return np.array([x, y]), reward, False
+    return [x, y], reward, False
 
 
 @app.route('/')
