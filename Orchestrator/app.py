@@ -4,8 +4,8 @@ from flask import Flask, request, jsonify
 import json
 import requests
 from os import environ
-# from ray_actor import Actor, something
-# import ray
+from ray_actor import Actor, something
+import ray
 from sys import exit
 
 
@@ -20,15 +20,57 @@ DOCKER_URL = "http://{}".format(environ["DOCKER_HOST"])
 
 actors = None
 
-# proc = subprocess.call("ray start --head --redis-port=6379",
-#                            shell=True)
+proc = subprocess.call("ray start --head --redis-port=6379", shell=True)
+ray.init(address="127.0.0.1:6379")
 
+if proc:
+    print("Cannot bring up ray")
+    exit(1)
 
-# ray.init(address="127.0.0.1:6379")
+print("ray initialized.")
 
-# if proc:
-#    print("Cannot bring up ray")
-#    exit(1)
+@ray.remote
+def simulate(state, action):
+
+    x = state[0]
+    y = state[1]
+
+    badReward = -1000
+    goodReward = 1000
+
+    # Got gored by a monster
+    if x == 2 and y == 2:
+        return state, badReward, True
+  
+    # Got the treasure
+    if x == 2 and y == 0:
+        return state, goodReward, True
+
+    if action == 0: # Going Left
+        x -= 1
+    elif action == 1: # Going Right
+        x += 1
+    elif action == 2:
+        y += 1 # Going down
+    else:
+        y -= 1 # Going up
+
+    # Define boundary crossing penalties
+    reward = 0
+    if x < 0:
+        x = 0
+        reward = badReward
+    elif x > 2:
+        x = 2
+        reward = badReward
+    elif y < 0:
+        y = 0
+        reward = badReward
+    elif y > 2:
+        y = 2
+        reward = badReward
+  
+    return [x, y], reward, False
 
 @app.route('/')
 def hello():

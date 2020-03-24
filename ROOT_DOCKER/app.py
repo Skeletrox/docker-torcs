@@ -3,10 +3,10 @@ import time
 # from threading import Thread
 from flask import Flask, request, jsonify
 # from xvfbwrapper import Xvfb
-# # import ray
+import ray
 from sys import exit
 # from re import findall
-# from os import environ
+from os import environ
 import logging
 
 '''
@@ -40,6 +40,7 @@ def launch_torcs():
     finally:
         z.wait()
         f.close()
+'''
 
 proc = subprocess.call("ray start --address={}:6379".format(environ["DOCKER_HOST"]),
                             shell=True)
@@ -52,6 +53,7 @@ while True:
         print("Retrying in 5s...")
         time.sleep(5)
 
+'''
 try:
     print("Getting TORCS up..")
     thread = Thread(target=launch_torcs)

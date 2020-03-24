@@ -4,6 +4,7 @@ import subprocess
 import logging
 import json
 from sys import exit
+from platform import system
 
 # The directory where all the docker files will be placed
 DOCKER_BUILD_DIR = "DOCKERS"
@@ -27,7 +28,7 @@ services:
 
 # The dockerfile template string that will be used to set the host docker's IP
 dockerfile_template = '''
-FROM torcs_docker:latest
+FROM torcs_docker:latest    
 WORKDIR /code
 ENV DOCKER_HOST {dynamic_docker_host}
 CMD ["flask", "run"]
@@ -61,10 +62,14 @@ start_port = int(input("[+] Enter anchor port: "))
 work_directory = os.getcwd()
 
 # get the docker0 ip address (linux only)
-proc = subprocess.check_output("ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+'",
+if system() == 'Windows':
+    docker0_ip = "192.168.99.1"
+else:
+    proc = subprocess.check_output("ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+'",
                             shell=True)
 
-docker0_ip = proc.decode()
+    docker0_ip = proc.decode()
+    
 print("Docker IP address of host is", docker0_ip)
 
 # Optional build of the orchestrator and service images. Not necessary if images already exist.
