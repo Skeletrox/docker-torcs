@@ -3,8 +3,7 @@ import shutil
 import subprocess
 import logging
 import json
-from sys import exit
-from platform import system
+from sys import exit, platform
 
 # The directory where all the docker files will be placed
 DOCKER_BUILD_DIR = "DOCKERS"
