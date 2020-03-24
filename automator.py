@@ -61,15 +61,14 @@ start_port = int(input("[+] Enter anchor port: "))
 # work_directory can be either the current working directory or a remote directory where the files exist
 work_directory = os.getcwd()
 
-# get the docker0 ip address (linux only)
-if system() == 'Windows':
-    docker0_ip = "192.168.99.1"
+# get the docker0 ip address (dynamic on linux only, static on windows)
+if platform == 'win32':
+    docker0_ip = '192.168.99.100'
 else:
     proc = subprocess.check_output("ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+'",
                             shell=True)
-
     docker0_ip = proc.decode()
-    
+
 print("Docker IP address of host is", docker0_ip)
 
 # Optional build of the orchestrator and service images. Not necessary if images already exist.
