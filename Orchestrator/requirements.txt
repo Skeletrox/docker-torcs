@@ -1,3 +1,5 @@
 flask
 ray
 requests
+aiohttp
+asyncio
