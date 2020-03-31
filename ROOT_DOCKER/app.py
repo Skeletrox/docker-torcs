@@ -1,5 +1,5 @@
 import time
-# import subprocess
+import subprocess
 # from threading import Thread
 from flask import Flask, request, jsonify
 # from xvfbwrapper import Xvfb
@@ -40,20 +40,6 @@ def launch_torcs():
     finally:
         z.wait()
         f.close()
-'''
-
-proc = subprocess.call("ray start --address={}:6379".format(environ["DOCKER_HOST"]),
-                            shell=True)
-
-while True:
-    try:
-        ray.init(address="{}:6379".format(environ["DOCKER_HOST"]))
-        break
-    except Exception as e:
-        print("Retrying in 5s...")
-        time.sleep(5)
-
-'''
 try:
     print("Getting TORCS up..")
     thread = Thread(target=launch_torcs)
@@ -146,3 +132,22 @@ def act():
 #def actUsingRay(actor):
 #    stuff = actor.step.remote()
 #    return actor
+
+if __name__ == "__main__":
+    print("Trying to execute: ray start --address={host}:6379".format(host=environ["DOCKER_HOST"]))
+    proc = subprocess.call("ray start --address={host}:6379".format(host=environ["DOCKER_HOST"]),
+                            shell=True)
+    print("subprocess called.")
+
+    while True and not proc:
+        try:
+            print("initing ray.")
+            ray.init(address="{host}:6379".format(host=environ["DOCKER_HOST"]))
+            print("ray inited.")
+            break
+        except Exception as e:
+            print("Retrying in 5s due to {}...".format(str(e)))
+            time.sleep(5)
+
+    print("Host={}, port={}, docker host={}".format(environ["FLASK_RUN_HOST"], environ["FLASK_RUN_PORT"], environ["DOCKER_HOST"]))
+    app.run(host="{}".format(environ["FLASK_RUN_HOST"]), port="{}".format(environ["FLASK_RUN_PORT"]))

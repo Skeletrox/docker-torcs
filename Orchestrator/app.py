@@ -6,6 +6,7 @@ import requests
 from os import environ
 from ray_actor import Actor, something
 import ray
+import random
 from sys import exit
 
 
@@ -19,15 +20,6 @@ DOCKER_URL = "http://{}".format(environ["DOCKER_HOST"])
 
 
 actors = None
-
-proc = subprocess.call("ray start --head --redis-port=6379", shell=True)
-ray.init(address="127.0.0.1:6379")
-
-if proc:
-    print("Cannot bring up ray")
-    exit(1)
-
-print("ray initialized.")
 
 @ray.remote
 def simulate(state, action):
@@ -72,6 +64,7 @@ def simulate(state, action):
   
     return [x, y], reward, False
 
+
 @app.route('/')
 def hello():
     return 'Hello World! Visit <a href="https://skeletrox.github.io">skeletrox.github.io</a>!\n'
@@ -80,7 +73,7 @@ def hello():
 def init():
     data = request.json
     numActors = data["actors"]
-    actors = [Actor() for i in range(actors)]
+    actors = [Actor() for _ in range(actors)]
 
 @app.route('/steps', methods=["POST"])
 def demux():
@@ -101,6 +94,7 @@ def demux():
     })
 
 
+
 #@app.route('/raysteps', methods=["POST"])
 #def demux_ray():
 #    data = request.json
@@ -114,13 +108,32 @@ def demux():
 #    })
 
 
-#@app.route('/test')
-#def test():
-#    result = list(set(ray.get([something.remote() for _ in range(1000)])))
-#    return jsonify({
-#        "result": result
-#    })
+@app.route('/test', methods=['POST'])
+def test():
+    print("Request:")
+    print(request)
+    data = request.json
+    print("Data:")
+    print(data)
+    num_states = len(data.get("states", []))
+    num_actions = len(data.get("actions", []))
+    if num_states != num_actions:
+        return jsonify({
+            "error": "Improper data"
+        })
+
+    result = list([ray.get(simulate.remote(data["states"][i], data["actions"][i])) for i in range(num_states)])
+    return jsonify({
+        "result": result
+    })
 
 
 if __name__ == "__main__":
+    proc = subprocess.call("ray start --head --redis-port=6379", shell=True)
+    if proc:
+        print("Cannot bring up ray. Check logs.")
+        exit(1)
+    
+    ray.init(address="127.0.0.1:6379")
+    print("ray initialized.")
     app.run(host="0.0.0.0", port=5000)
