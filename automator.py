@@ -14,6 +14,7 @@ template_string = '''
         build: {service_folder}
         ports:
             - "{parent_port}:5000"
+            - "{dashboard_port}:8265"
 '''
 
 orchestrator_template = '''
@@ -23,21 +24,24 @@ services:
         ports:
             - "5000:5000"
             - "6379:6379"
+            - "8265:8265"
 '''
 
 # The dockerfile template string that will be used to set the host docker's IP
 dockerfile_template = '''
-FROM torcs_docker:latest
+FROM torcs_docker:latest    
 WORKDIR /code
 ENV DOCKER_HOST {dynamic_docker_host}
-CMD ["flask", "run"]
+CMD ["python", "app.py"]
 '''
 
 orchestrator_dockerfile = '''
 FROM torcs_orchestrator:latest
 WORKDIR /code
+ENV NUM_WORKERS {num_workers}
 ENV DOCKER_HOST {dynamic_docker_host}
-CMD ["flask", "run"]
+COPY . .
+CMD ["python", "app.py"]
 '''
 
 # A helper function to allow for immediate STDOUT from long-running processing
@@ -107,7 +111,7 @@ except FileExistsError:
 
 
 with open("{}/orchestrator/Dockerfile".format(folder_name), 'w+') as df:
-            df.write(orchestrator_dockerfile.format(dynamic_docker_host=docker0_ip))
+            df.write(orchestrator_dockerfile.format(dynamic_docker_host=docker0_ip, num_workers=num_dockers))
 
 
 service_folder = "torcs_instance" 
@@ -125,7 +129,7 @@ with open("{}/docker-compose.yml".format(folder_name), 'w+') as d_c:
     d_c.write(orchestrator_template)
     for i in range(num_dockers):
         service_name = "{}_{}".format(service_folder, i+1)
-        d_c.write(template_string.format(service_name=service_name, service_folder=service_folder, parent_port=start_port + i))
+        d_c.write(template_string.format(service_name=service_name, service_folder=service_folder, parent_port=start_port + i, dashboard_port=start_port+i+8265))
         port_list.append(start_port + i)
 
 

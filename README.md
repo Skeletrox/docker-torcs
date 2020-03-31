@@ -1,6 +1,6 @@
 # Docker-TORCS
 
-TORCS running in headless mode on Docker with a `flask` and `ray` interface.
+TORCS running in headless mode on Docker with a `flask` and `ray` interface. Currently a lot of the TORCS code is commented out in order to get a working dockerized Ray cluster on a simple problem. Feel free to uncomment and fix everything if you wish.
 
 ## Setup
 
