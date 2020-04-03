@@ -1,4 +1,5 @@
 flask
 gym
 ray
+opencv-python
 git+git://github.com/Skeletrox/xvfbwrapper.git
