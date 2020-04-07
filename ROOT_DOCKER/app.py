@@ -8,6 +8,7 @@ from sys import exit
 # from re import findall
 from os import environ
 import logging
+from gym_torcs.snakeoil3_gym import doSomething
 
 
 torcs_display = None
@@ -22,15 +23,6 @@ def execute(cmd, file_descriptor=None):
     return popen
 
 
-def launch_ffmpeg():
-    print("Attempting to open FFMPEG:")
-    try:
-        execute(["ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 -vf scale=64:64 /tmp/output.mp4"], None)
-    except Exception as e:
-        with open('/var/log/torcs_ffmpeg_err.log', 'a+') as f2:
-            f2.write(str(e))
-
-
 def launch_torcs():
     global torcs_display
     print("Getting display up..")
@@ -38,7 +30,7 @@ def launch_torcs():
     vdisplay.start()
     try:
         f = open('/var/log/torcs_py.log', 'w')
-        z = execute("/code/torcs-1.3.7/BUILD/bin/torcs &")
+        z = execute("/code/torcs-1.3.7/BUILD/bin/torcs")
     except Exception as e:
         print(e)            
     finally:
@@ -120,6 +112,14 @@ def act():
     })
 
 
+@app.route('/drive')
+def drive():
+    result = doSomething()
+    return jsonify({
+        "result": result
+    })
+
+
 #@ray.remote
 #def actUsingRay(actor):
 #    stuff = actor.step.remote()
@@ -130,11 +130,8 @@ if __name__ == "__main__":
         print("Getting TORCS up..")
         thread = Thread(target=launch_torcs)
         thread.start()
-        print("TORCS launched. Getting FFMPEG up..")
+        print("TORCS launched.")
         time.sleep(1)
-        #thread2 = Thread(target=launch_ffmpeg)
-        #print("FFMPEG launched.")
-        #thread2.start()
     except Exception as e:
         print(e)
         working = False
