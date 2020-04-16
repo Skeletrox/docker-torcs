@@ -1,15 +1,19 @@
 import time
 import subprocess
-# from threading import Thread
+from threading import Thread
 from flask import Flask, request, jsonify
-# from xvfbwrapper import Xvfb
+from xvfbwrapper import Xvfb
 import ray
 from sys import exit
 # from re import findall
 from os import environ
 import logging
+from gym_torcs.snakeoil3_gym import doSomething
 
-'''
+
+torcs_display = None
+
+
 def execute(cmd, file_descriptor=None):
     if file_descriptor is not None:
         popen = subprocess.Popen(cmd, stdout=file_descriptor, stderr=file_descriptor, universal_newlines=True, shell=True)
@@ -19,41 +23,21 @@ def execute(cmd, file_descriptor=None):
     return popen
 
 
-def launch_ffmpeg():
-    print("Attempting to open FFMPEG:")
-    try:
-        execute(["ffmpeg -video_size 640x480 -framerate 25 -f x11grab -i :0.0+0,0 -vf scale=64:64 /tmp/output.mp4"], None)
-    except Exception as e:
-        with open('/var/log/torcs_ffmpeg_err.log', 'a+') as f2:
-            f2.write(str(e))
-
-
 def launch_torcs():
+    global torcs_display
     print("Getting display up..")
     vdisplay = Xvfb(width=640, height=480, display="0")
     vdisplay.start()
     try:
         f = open('/var/log/torcs_py.log', 'w')
-        z = execute("/code/torcs-1.3.7/BUILD/bin/torcs", f)
+        z = execute("/code/torcs-1.3.7/BUILD/bin/torcs")
     except Exception as e:
         print(e)            
     finally:
         z.wait()
         f.close()
-try:
-    print("Getting TORCS up..")
-    thread = Thread(target=launch_torcs)
-    thread.start()
-    print("TORCS launched. Getting FFMPEG up..")
-    time.sleep(1)
-    thread2 = Thread(target=launch_ffmpeg)
-    print("FFMPEG launched.")
-    thread2.start()
-except Exception as e:
-    print(e)
-    working = False
-    print("Error launching torcs/ffmpeg. Please check output.")
-'''
+
+
 
 app = Flask(__name__)
 
@@ -128,24 +112,44 @@ def act():
     })
 
 
+@app.route('/drive')
+def drive():
+    result = doSomething()
+    return jsonify({
+        "result": result
+    })
+
+
 #@ray.remote
 #def actUsingRay(actor):
 #    stuff = actor.step.remote()
 #    return actor
 
 if __name__ == "__main__":
+    try:
+        print("Getting TORCS up..")
+        thread = Thread(target=launch_torcs)
+        thread.start()
+        print("TORCS launched.")
+        time.sleep(1)
+    except Exception as e:
+        print(e)
+        working = False
+        print("Error launching torcs/ffmpeg. Please check output.")
+
     print("Trying to execute: ray start --address={host}:6379".format(host=environ["DOCKER_HOST"]))
     proc = subprocess.call("ray start --address={host}:6379".format(host=environ["DOCKER_HOST"]),
                             shell=True)
     print("subprocess called.")
-
-    while True and not proc:
+    retries = 0
+    while True and not proc and retries < 50:
         try:
             print("initing ray.")
             ray.init(address="{host}:6379".format(host=environ["DOCKER_HOST"]))
             print("ray inited.")
             break
         except Exception as e:
+            retries += 1
             print("Retrying in 5s due to {}...".format(str(e)))
             time.sleep(5)
 

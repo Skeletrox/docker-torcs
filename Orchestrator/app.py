@@ -94,6 +94,19 @@ def demux():
     })
 
 
+@app.route('/drives')
+def drives():
+    ports = metadata["containers"]
+    returnable = {}
+
+    for i in range(len(ports)):
+        r = requests.get(url="{}:{}/drive".format(DOCKER_URL, ports[i]))
+        returnable[i] =  r.json()
+
+    return jsonify({
+        "responses": returnable
+    })
+
 
 #@app.route('/raysteps', methods=["POST"])
 #def demux_ray():

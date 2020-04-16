@@ -131,9 +131,7 @@ with open("{}/docker-compose.yml".format(folder_name), 'w+') as d_c:
         service_name = "{}_{}".format(service_folder, i+1)
         d_c.write(template_string.format(service_name=service_name, service_folder=service_folder, parent_port=start_port + i, dashboard_port=start_port+i+8265))
         port_list.append(start_port + i)
-
-
-    print("[*] docker data for instance {} written".format(i+1))
+        print("[*] docker data for instance {} written".format(i+1))
 
 # The writable dictionary is currently the list of ports
 writable_dict = {
