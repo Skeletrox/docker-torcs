@@ -7,6 +7,8 @@ from os import environ
 from ray_actor import Actor, something
 import ray
 import random
+import asyncio
+import aiohttp
 from sys import exit
 
 
@@ -18,8 +20,63 @@ with open('./config.json') as config:
 
 DOCKER_URL = "http://{}".format(environ["DOCKER_HOST"])
 
-
 actors = None
+
+import random
+import string
+
+# Random string generator to uniquely identify each docker instance
+def randomString(stringLength=8):
+    letters = string.ascii_lowercase
+    return "".join([random.choice(letters) for i in range(stringLength)])
+
+
+async def fetchJson(session, url, jsonData=None, method=None):
+    if method == "POST":
+        async with session.post(url, json=jsonData) as response:
+            return await response.text()
+    else:
+        async with session.get(url) as response:
+            return await response.text()
+
+
+async def rollCallAsync():
+    tasks = []
+    ports = metadata["containers"]
+    for i in range(len(ports)):
+        session = aiohttp.ClientSession()
+        url = "{}:{}/getname".format(DOCKER_URL, ports[i])
+        tasks.append(fetchJson(session, url))
+
+    res = await asyncio.gather(*tasks, return_exceptions=True)
+    return res
+
+
+async def demuxSteps(data):
+    ports = metadata["containers"]
+    tasks = []
+    sessions = []
+    for i in range(len(ports)):
+        session = aiohttp.ClientSession()
+        jsonData = {
+            "state": data["states"][i],
+            "action": data["actions"][i]
+        }
+        url = "{}:{}/step".format(DOCKER_URL, ports[i])
+
+        # r = requests.post(url="{}:{}/step".format(DOCKER_URL, ports[i]), json={
+        #     "state": data["states"][i],
+        #     "action": data["actions"][i]
+        # })
+        tasks.append(fetchJson(session, url, jsonData, "POST"))
+        sessions.append(session)
+    res = await asyncio.gather(*tasks, return_exceptions=True)
+    for session in sessions:
+        await session.close()
+    return res
+        
+
+
 
 @ray.remote
 def simulate(state, action):
@@ -65,32 +122,64 @@ def simulate(state, action):
     return [x, y], reward, False
 
 
+@ray.remote
+def nexus():
+    return {
+        "ID": environ["TORCS_ID"]
+    }
+
+
 @app.route('/')
 def hello():
     return 'Hello World! Visit <a href="https://skeletrox.github.io">skeletrox.github.io</a>!\n'
 
-@app.route('/init', methods=["POST"])
-def init():
-    data = request.json
-    numActors = data["actors"]
-    actors = [Actor() for _ in range(actors)]
 
 @app.route('/steps', methods=["POST"])
 def demux():
-
+    print("Here")
     data = request.json
+    print("Then")
+    returnable = {}
+    print("I came")
+    loop = asyncio.new_event_loop()
+    print("What if")
+    asyncio.set_event_loop(loop)
+    print("There was none")
+    returnable = asyncio.get_event_loop().run_until_complete(demuxSteps(data))
+    print("That could tell me what I could do")
+    print("returnable is", returnable)
+    return jsonify({
+        "responses": returnable
+    })
+
+@app.route('/init')
+def initWorkers():
     ports = metadata["containers"]
     returnable = {}
-
     for i in range(len(ports)):
-        r = requests.post(url="{}:{}/step".format(DOCKER_URL, ports[i]), json={
-            "state": data["states"][i],
-            "action": data["actions"][i]
+        value = randomString()
+        r = requests.post(url="{}:{}/setname".format(DOCKER_URL, ports[i]), json={
+             "id": value
         })
-        returnable[i] =  r.json()
+        returnable[value] = r.json()
+
 
     return jsonify({
         "responses": returnable
+    })
+
+
+@app.route('/rollcall')
+def rollCall():
+    print("Rollcalling...")
+    loop = asyncio.new_event_loop()
+    print("Loop defined.")
+    asyncio.set_event_loop(loop)
+    print("Event loop set.")
+    returnable = asyncio.get_event_loop().run_until_complete(rollCallAsync())
+    print("Returnable obtained.")
+    return jsonify({
+        "responses": [str(r) for r in returnable]
     })
 
 
@@ -98,7 +187,6 @@ def demux():
 def drives():
     ports = metadata["containers"]
     returnable = {}
-
     for i in range(len(ports)):
         r = requests.get(url="{}:{}/drive".format(DOCKER_URL, ports[i]))
         returnable[i] =  r.json()
@@ -106,19 +194,6 @@ def drives():
     return jsonify({
         "responses": returnable
     })
-
-
-#@app.route('/raysteps', methods=["POST"])
-#def demux_ray():
-#    data = request.json
-#    returnable = []
-#
-#    for i in range(len(ports)):
-#        actors[i].setNextSteps(data["actions"][i])
-#
-#    return jsonify({
-#        "responses": returnable
-#    })
 
 
 @app.route('/test', methods=['POST'])

@@ -6,12 +6,8 @@ from xvfbwrapper import Xvfb
 import ray
 from sys import exit
 # from re import findall
-from os import environ
+from os import environ, system
 import logging
-from gym_torcs.snakeoil3_gym import doSomething
-
-
-torcs_display = None
 
 
 def execute(cmd, file_descriptor=None):
@@ -24,7 +20,6 @@ def execute(cmd, file_descriptor=None):
 
 
 def launch_torcs():
-    global torcs_display
     print("Getting display up..")
     vdisplay = Xvfb(width=640, height=480, display="0")
     vdisplay.start()
@@ -120,6 +115,46 @@ def drive():
     })
 
 
+@app.route('/kill')
+def kill():
+    try:
+        system("pkill torcs")
+        return jsonify({
+            "success": True,
+            "msg": None
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "msg": str(e)
+        })
+
+
+@app.route('/start')
+def start():
+    thread = Thread(target=launch_torcs)
+    thread.start()
+    print("TORCS launched.")
+    return jsonify({
+        "launched": True
+    })
+
+
+@app.route('/setname', methods=["POST"])
+def setname():
+    environ["TORCS_ID"] = request.json.get("id", "NULL")
+    return jsonify({
+        "ID": environ["TORCS_ID"]
+    })
+
+
+@app.route('/getname')
+def getname():
+    return jsonify({
+        "ID": environ["TORCS_ID"]
+    })
+
+
 #@ray.remote
 #def actUsingRay(actor):
 #    stuff = actor.step.remote()
@@ -134,8 +169,7 @@ if __name__ == "__main__":
         time.sleep(1)
     except Exception as e:
         print(e)
-        working = False
-        print("Error launching torcs/ffmpeg. Please check output.")
+        print("Error launching torcs. Please check output.")
 
     print("Trying to execute: ray start --address={host}:6379".format(host=environ["DOCKER_HOST"]))
     proc = subprocess.call("ray start --address={host}:6379".format(host=environ["DOCKER_HOST"]),

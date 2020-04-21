@@ -5,6 +5,7 @@ import logging
 import json
 from sys import exit, platform
 
+
 # The directory where all the docker files will be placed
 DOCKER_BUILD_DIR = "DOCKERS"
 
@@ -149,10 +150,3 @@ os.chdir("{}/{}".format(work_directory, DOCKER_BUILD_DIR))
 for line in execute(["docker-compose", "up", "-d"]):
     print(line.strip())
 print("[*] Orchestrator and services up. Events logged.".format(i+1))
-
-
-#for i in range(num_dockers):
-#    os.chdir("{}/{}/torcs_{}".format(work_directory, DOCKER_BUILD_DIR, i+1))
-#    for line in execute(["docker-compose", "up", "-d"]):
-#        print(line.strip())
-#    print("Docker torcs_{} up. Events logged.".format(i+1))
