@@ -136,18 +136,19 @@ def hello():
 
 @app.route('/steps', methods=["POST"])
 def demux():
-    print("Here")
-    data = request.json
-    print("Then")
-    returnable = {}
-    print("I came")
-    loop = asyncio.new_event_loop()
-    print("What if")
-    asyncio.set_event_loop(loop)
-    print("There was none")
-    returnable = asyncio.get_event_loop().run_until_complete(demuxSteps(data))
-    print("That could tell me what I could do")
-    print("returnable is", returnable)
+    returnable = []
+    with open("/var/log/steps.log", "a") as s:
+        data = request.json
+        returnable = []
+        loop = asyncio.new_event_loop()
+        # asyncio.set_event_loop(loop)
+        returned = loop.run_until_complete(demuxSteps(data))
+        for r in returned:
+            try:
+                returnable.append(json.loads(r))
+            except Exception as e:
+                s.write(str(e)+"\n")
+
     return jsonify({
         "responses": returnable
     })
@@ -171,15 +172,12 @@ def initWorkers():
 
 @app.route('/rollcall')
 def rollCall():
-    print("Rollcalling...")
-    loop = asyncio.new_event_loop()
-    print("Loop defined.")
-    asyncio.set_event_loop(loop)
-    print("Event loop set.")
-    returnable = asyncio.get_event_loop().run_until_complete(rollCallAsync())
-    print("Returnable obtained.")
+    with open('/var/log/rollcall.log', 'a') as r:
+        loop = asyncio.new_event_loop()
+        # asyncio.set_event_loop(loop)
+        returnable = loop.run_until_complete(rollCallAsync())
     return jsonify({
-        "responses": [str(r) for r in returnable]
+        "responses": [json.loads(r) for r in returnable]
     })
 
 

@@ -116,26 +116,42 @@ def bargraph(x,mn,mx,w,c='X'):
     return '[%s]' % (nnc+npc+ppc+pnc)
 
 class Client():
-    def __init__(self,H=None,p=None,i=None,e=None,t=None,s=None,d=None,vision=False):
-        # If you don't like the option defaults,  change them here.
+    def __init__(self,
+                vision=True,
+                host='localhost',
+                port=3001,
+                sid='SCR',
+                maxEpisodes=1,
+                trackName='unknown',
+                stage=3,
+                debug=False,
+                maxSteps=100000):
+        # If you don't like the option defaults, change them here.
         self.vision = vision
+        self.host= host
+        self.port= port
+        self.sid= sid
+        self.maxEpisodes= maxEpisodes # "Maximum number of learning episodes to perform"
+        self.trackname= trackname
+        self.stage = stage # 0=Warm-up, 1=Qualifying 2=Race, 3=unknown <Default=3>
+        self.debug = debug
+        self.maxSteps= maxSteps  # 50steps/second
 
-        self.host= 'localhost'
-        self.port= 3001
-        self.sid= 'SCR'
-        self.maxEpisodes=1 # "Maximum number of learning episodes to perform"
-        self.trackname= 'unknown'
-        self.stage= 3 # 0=Warm-up, 1=Qualifying 2=Race, 3=unknown <Default=3>
-        self.debug= False
-        self.maxSteps= 100000  # 50steps/second
+        # Command line args override
         self.parse_the_command_line()
-        if H: self.host= H
-        if p: self.port= p
-        if i: self.sid= i
+        if H: 
+            self.host= H
+        if p: 
+            self.port= p
+        if i: 
+            self.sid= i
         if e: self.maxEpisodes= e
-        if t: self.trackname= t
-        if s: self.stage= s
-        if d: self.debug= d
+        if t: 
+            self.trackname= t
+        if s: 
+            self.stage= s
+        if d: 
+            self.debug= d
         self.S= ServerState()
         self.R= DriverAction()
         self.setup_connection()
@@ -172,13 +188,9 @@ class Client():
                 print("Count Down : " + str(n_fail))
                 if n_fail < 0:
                     print("relaunch torcs")
-                    os.system('pkill torcs')
+                    r = requests.get("{}:{}/kill".format(self.host, self.port))
                     time.sleep(1.0)
-                    if self.vision is False:
-                        os.system('torcs -nofuel -nodamage -nolaptime &')
-                    else:
-                        os.system('torcs -nofuel -nodamage -nolaptime -vision &')
-
+                    r = requests.get("{}:{}/start/{}".format(self.host, self.port, "true" if self.vision else "false"))
                     time.sleep(1.0)
                     os.system('sh autostart.sh')
                     n_fail = 5

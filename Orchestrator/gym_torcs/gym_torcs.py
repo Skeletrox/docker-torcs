@@ -8,6 +8,7 @@ import copy
 import collections as col
 import os
 import time
+import requests
 
 
 class TorcsEnv:
@@ -18,21 +19,21 @@ class TorcsEnv:
     initial_reset = True
 
 
-    def __init__(self, vision=False, throttle=False, gear_change=False):
+    def __init__(self, vision=False, throttle=False, gear_change=False, host='localhost', port=5000, torcs_port=3001):
        #print("Init")
         self.vision = vision
         self.throttle = throttle
         self.gear_change = gear_change
-
+        self.host = host
+        self.port = port
+        self.torcs_port = torcs_port
         self.initial_run = True
 
         ##print("launch torcs")
-        os.system('pkill torcs')
+        r = requests.get("{}:{}/kill".format(self.host, self.port))
+        # os.system('pkill torcs')
         time.sleep(0.5)
-        if self.vision is True:
-            os.system('torcs -nofuel -nodamage -nolaptime  -vision &')
-        else:
-            os.system('torcs  -nofuel -nodamage -nolaptime &')
+        r = requests.get("{}:{}/start/{}".format(self.host, self.port, "true" if self.vision else "false"))
         time.sleep(0.5)
         os.system('sh autostart.sh')
         time.sleep(0.5)
@@ -180,7 +181,7 @@ class TorcsEnv:
                 print("### TORCS is RELAUNCHED ###")
 
         # Modify here if you use multiple tracks in the environment
-        self.client = snakeoil3.Client(p=3101, vision=self.vision)  # Open new UDP in vtorcs
+        self.client = snakeoil3.Client(host=self.host, port=self.torcs_port, vision=self.vision)  # Open new UDP in vtorcs
         self.client.MAX_STEPS = np.inf
 
         client = self.client
@@ -195,19 +196,16 @@ class TorcsEnv:
         return self.get_obs()
 
     def end(self):
-        os.system('pkill torcs')
+        r = requests.get("{}:{}/kill".format(self.host, self.port))
 
     def get_obs(self):
         return self.observation
 
     def reset_torcs(self):
        #print("relaunch torcs")
-        os.system('pkill torcs')
+        r = requests.get("{}:{}/kill".format(self.host, self.port))
         time.sleep(0.5)
-        if self.vision is True:
-            os.system('torcs -nofuel -nodamage -nolaptime -vision &')
-        else:
-            os.system('torcs -nofuel -nodamage -nolaptime &')
+        r = requests.get("{}:{}/start/{}".format(self.host, self.port, "true" if self.vision else "false"))
         time.sleep(0.5)
         os.system('sh autostart.sh')
         time.sleep(0.5)

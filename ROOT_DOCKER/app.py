@@ -19,13 +19,16 @@ def execute(cmd, file_descriptor=None):
     return popen
 
 
-def launch_torcs():
+def launch_torcs(vision):
     print("Getting display up..")
     vdisplay = Xvfb(width=640, height=480, display="0")
     vdisplay.start()
     try:
         f = open('/var/log/torcs_py.log', 'w')
-        z = execute("/code/torcs-1.3.7/BUILD/bin/torcs")
+        if vision:
+            z = execute("/code/torcs-1.3.7/BUILD/bin/torcs -nofuel -nodamage -nolaptime -vision")
+        else:
+            z = execute("/code/torcs-1.3.7/BUILD/bin/torcs -nofuel -nodamage -nolaptime")
     except Exception as e:
         print(e)            
     finally:
@@ -130,9 +133,10 @@ def kill():
         })
 
 
-@app.route('/start')
-def start():
-    thread = Thread(target=launch_torcs)
+@app.route('/start/<vision>')
+def start(vision):
+    arg = True if vision == "true" else False
+    thread = Thread(target=launch_torcs, args=(arg))
     thread.start()
     print("TORCS launched.")
     return jsonify({

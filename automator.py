@@ -15,6 +15,7 @@ template_string = '''
         build: {service_folder}
         ports:
             - "{parent_port}:5000"
+            - "{torcs_port}:3101"
             - "{dashboard_port}:8265"
 '''
 
@@ -130,7 +131,7 @@ with open("{}/docker-compose.yml".format(folder_name), 'w+') as d_c:
     d_c.write(orchestrator_template)
     for i in range(num_dockers):
         service_name = "{}_{}".format(service_folder, i+1)
-        d_c.write(template_string.format(service_name=service_name, service_folder=service_folder, parent_port=start_port + i, dashboard_port=start_port+i+8265))
+        d_c.write(template_string.format(service_name=service_name, service_folder=service_folder, parent_port=start_port + i, torcs_port=start_port+i+3101, dashboard_port=start_port+i+8265))
         port_list.append(start_port + i)
         print("[*] docker data for instance {} written".format(i+1))
 
