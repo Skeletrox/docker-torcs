@@ -2,7 +2,7 @@ import gym
 from gym import spaces
 import numpy as np
 # from os import path
-import snakeoil3_gym as snakeoil3
+from .snakeoil3_gym import Client
 import numpy as np
 import copy
 import collections as col
@@ -30,12 +30,12 @@ class TorcsEnv:
         self.initial_run = True
 
         ##print("launch torcs")
-        r = requests.get("{}:{}/kill".format(self.host, self.port))
+        r = requests.get("http://{}:{}/kill".format(self.host, self.port))
         # os.system('pkill torcs')
         time.sleep(0.5)
-        r = requests.get("{}:{}/start/{}".format(self.host, self.port, "true" if self.vision else "false"))
+        r = requests.get("http://{}:{}/start/{}".format(self.host, self.port, "true" if self.vision else "false"))
         time.sleep(0.5)
-        os.system('sh autostart.sh')
+        os.system('sh /code/gym_torcs/autostart.sh')
         time.sleep(0.5)
 
         """
@@ -181,7 +181,7 @@ class TorcsEnv:
                 print("### TORCS is RELAUNCHED ###")
 
         # Modify here if you use multiple tracks in the environment
-        self.client = snakeoil3.Client(host=self.host, port=self.torcs_port, vision=self.vision)  # Open new UDP in vtorcs
+        self.client = Client(host=self.host, port=self.torcs_port, vision=self.vision)  # Open new UDP in vtorcs
         self.client.MAX_STEPS = np.inf
 
         client = self.client
@@ -196,18 +196,18 @@ class TorcsEnv:
         return self.get_obs()
 
     def end(self):
-        r = requests.get("{}:{}/kill".format(self.host, self.port))
+        r = requests.get("http://{}:{}/kill".format(self.host, self.port))
 
     def get_obs(self):
         return self.observation
 
     def reset_torcs(self):
        #print("relaunch torcs")
-        r = requests.get("{}:{}/kill".format(self.host, self.port))
+        r = requests.get("http://{}:{}/kill".format(self.host, self.port))
         time.sleep(0.5)
-        r = requests.get("{}:{}/start/{}".format(self.host, self.port, "true" if self.vision else "false"))
+        r = requests.get("http://{}:{}/start/{}".format(self.host, self.port, "true" if self.vision else "false"))
         time.sleep(0.5)
-        os.system('sh autostart.sh')
+        os.system('sh /code/gym_torcs/autostart.sh')
         time.sleep(0.5)
 
     def agent_to_torcs(self, u):

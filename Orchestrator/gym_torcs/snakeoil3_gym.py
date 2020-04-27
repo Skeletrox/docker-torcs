@@ -192,7 +192,7 @@ class Client():
                     time.sleep(1.0)
                     r = requests.get("{}:{}/start/{}".format(self.host, self.port, "true" if self.vision else "false"))
                     time.sleep(1.0)
-                    os.system('sh autostart.sh')
+                    os.system('sh /code/gym_torcs/autostart.sh')
                     n_fail = 5
                 n_fail -= 1
 

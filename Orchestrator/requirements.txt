@@ -3,3 +3,4 @@ ray
 requests
 aiohttp
 asyncio
+gym

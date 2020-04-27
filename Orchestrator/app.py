@@ -10,6 +10,7 @@ import random
 import asyncio
 import aiohttp
 from sys import exit
+from gym_torcs.gym_torcs import TorcsEnv
 
 
 app = Flask(__name__)
@@ -20,7 +21,7 @@ with open('./config.json') as config:
 
 DOCKER_URL = "http://{}".format(environ["DOCKER_HOST"])
 
-actors = None
+envs = None
 
 import random
 import string
@@ -155,15 +156,20 @@ def demux():
 
 @app.route('/init')
 def initWorkers():
+    global envs
+    envs = []
     ports = metadata["containers"]
     returnable = {}
+    
     for i in range(len(ports)):
         value = randomString()
         r = requests.post(url="{}:{}/setname".format(DOCKER_URL, ports[i]), json={
              "id": value
         })
         returnable[value] = r.json()
-
+        # Now create a gym_torcs wrapper for this instance
+        env = TorcsEnv(vision=True, host=environ["DOCKER_HOST"], port=ports[i], torcs_port = ports[i]+3101)
+        envs.append(env)
 
     return jsonify({
         "responses": returnable
